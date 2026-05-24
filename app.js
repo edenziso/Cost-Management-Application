@@ -19,8 +19,8 @@ const CHART_COLORS = [
 
 /* ─── DB Initialization ──────────────────────────────────────── */
 
-/* Open the costs database once on load */
-const costsDB = db.openCostsDB("costsdb", 1);
+/* costsDB will be initialised inside DOMContentLoaded (see Boot section below) */
+let costsDB;
 
 /* ─── Utility Helpers ───────────────────────────────────────── */
 
@@ -407,6 +407,9 @@ function initNav() {
  * Initialises the application once the DOM is ready.
  */
 document.addEventListener("DOMContentLoaded", function () {
+  /* Initialise the database after the DOM (and all scripts) are ready */
+  costsDB = db.openCostsDB("costsdb", 1);
+
   populateCategories();
   populateYears();
   populateMonths();
