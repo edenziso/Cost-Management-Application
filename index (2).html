@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CostTrack — Cost Management App</title>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <!-- db.js library (must load before app.js) -->
+  <script src="db.js"></script>
+  <!-- Main application logic -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <div class="app-wrapper">
+
+    <!-- ─── Header ──────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="header-icon">💸</div>
+      <div>
+        <h1>CostTrack</h1>
+        <p>Your personal expense management dashboard</p>
+      </div>
+    </header>
+
+    <!-- ─── Navigation ──────────────────────────────────────── -->
+    <nav class="app-nav" aria-label="Main navigation">
+      <button class="nav-btn active" data-section="section-add">➕ Add Cost</button>
+      <button class="nav-btn" data-section="section-report">📋 Monthly Report</button>
+      <button class="nav-btn" data-section="section-bar">📊 Yearly Overview</button>
+    </nav>
+
+    <!-- ─── Section 1: Add Cost ─────────────────────────────── -->
+    <section id="section-add" class="section active" aria-labelledby="add-title">
+      <div class="card">
+        <h2 class="card-title"><span>✏️</span> Add New Expense</h2>
+
+        <div class="form-grid">
+
+          <!-- Amount -->
+          <div class="form-group">
+            <label for="cost-sum">Amount (USD)</label>
+            <input
+              type="number"
+              id="cost-sum"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <!-- Currency (fixed to USD per spec) -->
+          <div class="form-group">
+            <label for="cost-currency">Currency</label>
+            <select id="cost-currency">
+              <option value="USD" selected>USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="ILS">ILS — Israeli Shekel</option>
+              <option value="GBP">GBP — British Pound</option>
+            </select>
+          </div>
+
+          <!-- Category -->
+          <div class="form-group">
+            <label for="cost-category">Category</label>
+            <select id="cost-category" class="category-select"></select>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label for="cost-desc">Description</label>
+            <input
+              type="text"
+              id="cost-desc"
+              placeholder="e.g. Grocery shopping"
+            />
+          </div>
+
+          <!-- Submit button spanning full width -->
+          <div class="form-group full-width">
+            <button id="btn-add-cost" class="btn-primary">Add Expense</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Section 2: Monthly Report ──────────────────────── -->
+    <section id="section-report" class="section" aria-labelledby="report-title">
+      <div class="card">
+        <h2 class="card-title"><span>📋</span> Monthly Report</h2>
+
+        <!-- Controls row -->
+        <div class="controls-row">
+          <div class="form-group">
+            <label for="report-month">Month</label>
+            <select id="report-month" class="month-select"></select>
+          </div>
+          <div class="form-group">
+            <label for="report-year">Year</label>
+            <select id="report-year" class="year-select"></select>
+          </div>
+          <button id="btn-report" class="btn-secondary">Generate Report</button>
+        </div>
+
+        <!-- Report table output -->
+        <div id="report-results"></div>
+
+        <!-- Pie chart (hidden until report is generated) -->
+        <div id="pie-wrapper">
+          <p class="chart-title">Spending by Category</p>
+          <canvas id="pie-chart" aria-label="Pie chart of costs by category" role="img"></canvas>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─── Section 3: Yearly Bar Chart ─────────────────────── -->
+    <section id="section-bar" class="section" aria-labelledby="bar-title">
+      <div class="card">
+        <h2 class="card-title"><span>📊</span> Yearly Overview</h2>
+
+        <div class="controls-row">
+          <div class="form-group">
+            <label for="bar-year">Year</label>
+            <select id="bar-year" class="year-select"></select>
+          </div>
+          <button id="btn-bar" class="btn-secondary">Show Chart</button>
+        </div>
+
+        <canvas id="bar-chart" aria-label="Bar chart of monthly costs" role="img"></canvas>
+
+      </div>
+    </section>
+
+  </div><!-- /.app-wrapper -->
+
+  <!-- ─── Toast Notification ──────────────────────────────── -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+</body>
+</html>
