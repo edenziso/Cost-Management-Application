@@ -1,4 +1,3 @@
-
 /*
  * db.js
  * Cost Management Database Library
@@ -7,10 +6,10 @@
  */
  
 (function (global) {
-  "use strict";
+  'use strict';
  
   /* Key used to store all cost items in localStorage */
-  const STORAGE_KEY = "costsdb_items";
+  const STORAGE_KEY = 'costsdb_items';
  
   /*
    * CostsDB constructor
@@ -35,7 +34,7 @@
     try {
       return JSON.parse(raw);
     } catch (e) {
-      /* If parsing fails, return empty array */
+      // If parsing fails, return empty array
       return [];
     }
   }
@@ -55,18 +54,16 @@
    * @returns {Object} The newly added item: { sum, currency, category, description }
    */
   CostsDB.prototype.addCost = function (cost) {
-    /* Validate required fields */
+    // Validate required fields
     if (
       cost === null ||
-      typeof cost !== "object" ||
-      typeof cost.sum !== "number" ||
-      typeof cost.currency !== "string" ||
-      typeof cost.category !== "string" ||
-      typeof cost.description !== "string"
+      typeof cost !== 'object' ||
+      typeof cost.sum !== 'number' ||
+      typeof cost.currency !== 'string' ||
+      typeof cost.category !== 'string' ||
+      typeof cost.description !== 'string'
     ) {
-      throw new Error(
-        "addCost requires an object with sum (number), currency, category, and description (strings)."
-      );
+      throw 'addCost requires an object with sum (number), currency, category, and description (strings).';
     }
  
     const now = new Date();
@@ -113,12 +110,12 @@
   CostsDB.prototype.getReport = function (year, month) {
     const allCosts = readAllCosts();
  
-    /* Filter costs matching the requested year and month */
+    // Filter costs matching the requested year and month
     const filtered = allCosts.filter(function (item) {
       return item.date.year === year && item.date.month === month;
     });
  
-    /* Build costs array with date:{day} only — as per spec */
+    // Build costs array with date:{day} only — as per spec
     const costs = filtered.map(function (item) {
       return {
         sum: item.sum,
@@ -129,7 +126,7 @@
       };
     });
  
-    /* Calculate total sum */
+    // Calculate total sum
     let totalSum = 0;
     costs.forEach(function (item) {
       totalSum += item.sum;
@@ -140,7 +137,7 @@
       month: month,
       costs: costs,
       total: {
-        currency: "USD",
+        currency: 'USD',
         sum: totalSum,
       },
     };
@@ -158,31 +155,68 @@
      * @returns {CostsDB}
      */
     openCostsDB: function (name, version) {
-      if (typeof name !== "string" || typeof version !== "number") {
-        throw new Error("openCostsDB requires a string name and a number version.");
+      if (typeof name !== 'string' || typeof version !== 'number') {
+        throw 'openCostsDB requires a string name and a number version.';
       }
       return new CostsDB(name, version);
     },
  
     /*
      * getReport (global / static level)
-     * Returns all stored costs, optionally filtered by currency.
-     * Used by the test sample: db.getReport("USD")
-     * @param {string} currency - e.g. "USD"
-     * @returns {Object} { costs, total }
+     * Handles both automated tests: db.getReport(2025, 9) and sample format: db.getReport("USD")
+     * @param {number|string} arg1 - Full year OR currency string
+     * @param {number} [arg2]      - Month number (required if arg1 is year)
+     * @returns {Object}
      */
-    getReport: function (currency) {
+    getReport: function (arg1, arg2) {
+      // Scenario A: Automated test calls db.getReport(year, month)
+      if (typeof arg1 === 'number') {
+        const year = arg1;
+        const month = arg2;
+        const allCosts = readAllCosts();
+ 
+        const filtered = allCosts.filter(function (item) {
+          return item.date.year === year && item.date.month === month;
+        });
+ 
+        const costs = filtered.map(function (item) {
+          return {
+            sum: item.sum,
+            currency: item.currency,
+            category: item.category,
+            description: item.description,
+            date: { day: item.date.day },
+          };
+        });
+ 
+        let totalSum = 0;
+        costs.forEach(function (item) {
+          totalSum += item.sum;
+        });
+ 
+        return {
+          year: year,
+          month: month,
+          costs: costs,
+          total: {
+            currency: 'USD',
+            sum: totalSum,
+          },
+        };
+      }
+ 
+      // Scenario B: Traditional sample test calls db.getReport("USD")
+      const currency = arg1;
       const allCosts = readAllCosts();
  
-      /* Filter by currency when provided */
-      const filtered =
-        typeof currency === "string"
-          ? allCosts.filter(function (item) {
-              return item.currency === currency;
-            })
-          : allCosts;
+      // Filter by currency when provided
+      const filtered = typeof currency === 'string'
+        ? allCosts.filter(function (item) {
+            return item.currency === currency;
+          })
+        : allCosts;
  
-      /* Build costs with date:{day} only per spec */
+      // Build costs with date:{day} only per spec
       const costs = filtered.map(function (item) {
         return {
           sum: item.sum,
@@ -201,13 +235,16 @@
       return {
         costs: costs,
         total: {
-          currency: currency || "USD",
+          currency: currency || 'USD',
           sum: totalSum,
         },
       };
     },
   };
  
-  /* Attach db to the global object (window in browsers) */
+  // Attach db to the global object (window in browsers)
   global.db = db;
-})(typeof window !== "undefined" ? window : global);
+})(typeof window !== 'undefined' ? window : global);
+
+
+
