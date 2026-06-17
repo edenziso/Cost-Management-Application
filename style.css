@@ -186,8 +186,8 @@ label {
   text-transform: uppercase;
 }
 
-input[type="number"],
-input[type="text"],
+input[type='number'],
+input[type='text'],
 select,
 textarea {
   background: var(--bg-input);
@@ -203,6 +203,7 @@ textarea {
   appearance: none;
 }
 
+/* Grouping Focus Selectors safely to prevent code repetition */
 input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.18);
@@ -414,3 +415,4 @@ textarea {
     font-size: 1.45rem;
   }
 }
+
