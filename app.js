@@ -1,429 +1,311 @@
 /*
  * app.js
- * Main application logic for the Cost Management App.
- * Handles UI interactions, chart rendering, and calls to db.js.
+ * Main Application Logic for CostTrack
+ * Handles DOM interactions, Chart.js integrations, and links UI to db.js.
  */
 
-"use strict";
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
 
-/* ─── Constants ─────────────────────────────────────────────── */
+  // Open the database instance as required by the specification
+  const costsDB = db.openCostsDB('costsdb', 1);
 
-/* Available expense categories */
-const CATEGORIES = ["Food", "Education", "Health", "Transport", "Entertainment", "Shopping", "Other"];
+  // Application State to hold Chart instances
+  let pieChartInstance = null;
+  let barChartInstance = null;
 
-/* Chart.js color palette for categories */
-const CHART_COLORS = [
-  "#6C63FF", "#FF6584", "#43D9AD", "#FFBE0B",
-  "#FB5607", "#3A86FF", "#8338EC",
-];
+  // Predefined Categories for the application
+  const categories = ['FOOD', 'HEALTH', 'HOUSING', 'SPORT', 'EDUCATION', 'TRANSPORTATION', 'OTHER'];
 
-/* ─── DB Initialization ──────────────────────────────────────── */
+  // Cache DOM Elements
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('.section');
+  
+  // Form Inputs
+  const costSumInput = document.getElementById('cost-sum');
+  const costCurrencySelect = document.getElementById('cost-currency');
+  const costCategorySelect = document.getElementById('cost-category');
+  const costDescInput = document.getElementById('cost-desc');
+  const btnAddCost = document.getElementById('btn-add-cost');
 
-/* costsDB will be initialised inside DOMContentLoaded (see Boot section below) */
-let costsDB;
+  // Report Selects and Buttons
+  const reportMonthSelect = document.getElementById('report-month');
+  const reportYearSelect = document.getElementById('report-year');
+  const btnReport = document.getElementById('btn-report');
+  const reportResultsDiv = document.getElementById('report-results');
+  const pieWrapper = document.getElementById('pie-wrapper');
 
-/* ─── Utility Helpers ───────────────────────────────────────── */
+  // Yearly Overview Elements
+  const barYearSelect = document.getElementById('bar-year');
+  const btnBar = document.getElementById('btn-bar');
 
-/*
- * Pads a number to two digits (e.g. 5 => "05").
- * @param {number} n
- * @returns {string}
- */
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
+  // Toast Notification Element
+  const toast = document.getElementById('toast');
 
-/*
- * Formats a cost item date object to a readable string.
- * @param {Object} date - { day, month, year }
- * @returns {string}
- */
-function formatDate(date) {
-  return `${pad(date.day)}/${pad(date.month)}/${date.year}`;
-}
+  /* ─── Initialize Form & Dropdowns ──────────────────────────── */
 
-/*
- * Returns the short month name for a given month number (1-12).
- * @param {number} m
- * @returns {string}
- */
-function monthName(m) {
-  const names = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  // Populate Categories Dropdown
+  categories.forEach(function (category) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    costCategorySelect.appendChild(option);
+  });
+
+  // Populate Months (1-12)
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
-  return names[m - 1] || "";
-}
-
-/*
- * Shows a section by id and hides all others.
- * @param {string} id - section element id
- */
-function showSection(id) {
-  document.querySelectorAll(".section").forEach(function (s) {
-    s.classList.remove("active");
+  monthNames.forEach(function (name, index) {
+    const option = document.createElement('option');
+    option.value = index + 1; // 1-based month index
+    option.textContent = name;
+    reportMonthSelect.appendChild(option);
   });
-  document.getElementById(id).classList.add("active");
 
-  /* Update nav active state */
-  document.querySelectorAll(".nav-btn").forEach(function (btn) {
-    btn.classList.toggle("active", btn.dataset.section === id);
-  });
-}
-
-/*
- * Displays a transient toast notification.
- * @param {string} message
- * @param {string} type - "success" | "error"
- */
-function showToast(message, type) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.className = "toast show " + (type || "success");
-  setTimeout(function () {
-    toast.className = "toast";
-  }, 3000);
-}
-
-/* ─── Populate Dropdowns ────────────────────────────────────── */
-
-/*
- * Fills category <select> elements with the CATEGORIES list.
- */
-function populateCategories() {
-  const selects = document.querySelectorAll(".category-select");
-  selects.forEach(function (sel) {
-    CATEGORIES.forEach(function (cat) {
-      const opt = document.createElement("option");
-      opt.value = cat;
-      opt.textContent = cat;
-      sel.appendChild(opt);
-    });
-  });
-}
-
-/*
- * Fills year <select> elements with a range of years.
- */
-function populateYears() {
+  // Populate Year Dropdowns Dynamically (Current Year +/- 5 Years)
   const currentYear = new Date().getFullYear();
-  const selects = document.querySelectorAll(".year-select");
-  selects.forEach(function (sel) {
-    for (let y = currentYear; y >= currentYear - 10; y--) {
-      const opt = document.createElement("option");
-      opt.value = y;
-      opt.textContent = y;
-      if (y === currentYear) opt.selected = true;
-      sel.appendChild(opt);
+  const allYearSelects = document.querySelectorAll('.year-select');
+  
+  allYearSelects.forEach(function (selectElement) {
+    for (let y = currentYear - 3; y <= currentYear + 3; y++) {
+      const option = document.createElement('option');
+      option.value = y;
+      option.textContent = y;
+      if (y === currentYear) {
+        option.selected = true;
+      }
+      selectElement.appendChild(option);
     }
   });
-}
 
-/*
- * Fills month <select> elements with month names.
- */
-function populateMonths() {
-  const currentMonth = new Date().getMonth() + 1;
-  const selects = document.querySelectorAll(".month-select");
-  selects.forEach(function (sel) {
+  // Set default current month in report select
+  reportMonthSelect.value = new Date().getMonth() + 1;
+
+  /* ─── Toast Notification Utility ────────────────────────────── */
+
+  function showToast(message, type) {
+    toast.textContent = message;
+    toast.className = 'toast show ' + (type === 'success' ? 'success' : 'error');
+    
+    setTimeout(function () {
+      toast.className = 'toast';
+    }, 3500);
+  }
+
+  /* ─── Navigation Logic (SPA) ────────────────────────────────── */
+
+  navButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      const targetSectionId = button.getAttribute('data-section');
+
+      // Update active navigation button
+      navButtons.forEach(function (btn) { btn.classList.remove('active'); });
+      button.classList.add('active');
+
+      // Update visible section
+      sections.forEach(function (section) {
+        if (section.id === targetSectionId) {
+          section.classList.add('active');
+        } else {
+          section.classList.remove('active');
+        }
+      });
+    });
+  });
+
+  /* ─── Form Submission Logic (Add Cost) ───────────────────────── */
+
+  btnAddCost.addEventListener('click', function () {
+    const sumValue = parseFloat(costSumInput.value);
+    const currencyValue = costCurrencySelect.value;
+    const categoryValue = costCategorySelect.value;
+    const descValue = costDescInput.value.trim();
+
+    // Validation
+    if (isNaN(sumValue) || sumValue <= 0) {
+      showToast('Please enter a valid numeric amount greater than 0.', 'error');
+      return;
+    }
+    if (!descValue) {
+      showToast('Please enter a short description for the expense.', 'error');
+      return;
+    }
+
+    try {
+      // Add item to database using the instance reference
+      costsDB.addCost({
+        sum: sumValue,
+        currency: currencyValue,
+        category: categoryValue,
+        description: descValue
+      });
+
+      showToast('Expense added successfully!', 'success');
+
+      // Clear input fields safely
+      costSumInput.value = '';
+      costDescInput.value = '';
+    } catch (err) {
+      showToast('Failed to save expense: ' + err, 'error');
+    }
+  });
+
+  /* ─── Section 2: Monthly Report Generation & Chart ───────────── */
+
+  btnReport.addEventListener('click', function () {
+    const selectedMonth = parseInt(reportMonthSelect.value, 10);
+    const selectedYear = parseInt(reportYearSelect.value, 10);
+
+    // Fetch report data using the instance method
+    const reportData = costsDB.getReport(selectedYear, selectedMonth);
+
+    if (!reportData.costs || reportData.costs.length === 0) {
+      reportResultsDiv.innerHTML = '<div class="empty-msg">No expenses found for this month.</div>';
+      pieWrapper.style.display = 'none';
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+        pieChartInstance = null;
+      }
+      return;
+    }
+
+    // Build Table View
+    let tableHtml = '<table class="report-table"><thead><tr>';
+    tableHtml += '<th>Day</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th>';
+    tableHtml += '</tr></thead><tbody>';
+
+    reportData.costs.forEach(function (item) {
+      tableHtml += '<tr>';
+      tableHtml += '<td>' + item.date.day + '</td>';
+      tableHtml += '<td><span class="cat-badge">' + item.category + '</span></td>';
+      tableHtml += '<td>' + item.description + '</td>';
+      tableHtml += '<td class="amount">$' + item.sum.toFixed(2) + '</td>';
+      tableHtml += '</tr>';
+    });
+
+    tableHtml += '</tbody><tfoot><tr>';
+    tableHtml += '<td colspan="3" style="font-weight:600">Total Spent</td>';
+    tableHtml += '<td class="amount total-amount">$' + reportData.total.sum.toFixed(2) + '</td>';
+    tableHtml += '</tr></tfoot></table>';
+
+    reportResultsDiv.innerHTML = tableHtml;
+
+    // Aggregate Data for Category Pie Chart
+    const categoryTotals = {};
+    categories.forEach(function (cat) { categoryTotals[cat] = 0; });
+
+    reportData.costs.forEach(function (item) {
+      if (categoryTotals[item.category] !== undefined) {
+        categoryTotals[item.category] += item.sum;
+      } else {
+        categoryTotals['OTHER'] += item.sum;
+      }
+    });
+
+    // Filter out categories with 0 spending to keep the chart clean
+    const activeLabels = [];
+    const activeData = [];
+    categories.forEach(function (cat) {
+      if (categoryTotals[cat] > 0) {
+        activeLabels.push(cat);
+        activeData.push(categoryTotals[cat]);
+      }
+    });
+
+    // Render/Update Chart.js Pie Chart
+    pieWrapper.style.display = 'block';
+    const ctxPie = document.getElementById('pie-chart').getContext('2d');
+
+    if (pieChartInstance) {
+      pieChartInstance.destroy();
+    }
+
+    pieChartInstance = new Chart(ctxPie, {
+      type: 'pie',
+      data: {
+        labels: activeLabels,
+        datasets: [{
+          data: activeData,
+          backgroundColor: ['#6C63FF', '#43D9AD', '#FF6584', '#FFB154', '#36A2EB', '#9966FF', '#C9CBCF'],
+          borderWidth: 2,
+          borderColor: '#14142b'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#e8e8ff', font: { family: 'DM Sans' } }
+          }
+        }
+      }
+    });
+  });
+
+  /* ─── Section 3: Yearly Overview Chart ───────────────────────── */
+
+  btnBar.addEventListener('click', function () {
+    const selectedYear = parseInt(barYearSelect.value, 10);
+    const monthlySums = new Array(12).fill(0);
+
+    // Loop through 1-12 to gather totals for each month from the instance
     for (let m = 1; m <= 12; m++) {
-      const opt = document.createElement("option");
-      opt.value = m;
-      opt.textContent = monthName(m);
-      if (m === currentMonth) opt.selected = true;
-      sel.appendChild(opt);
+      const report = costsDB.getReport(selectedYear, m);
+      monthlySums[m - 1] = report.total.sum;
     }
-  });
-}
 
-/* ─── Add Cost Form ──────────────────────────────────────────── */
+    // Render/Update Chart.js Bar Chart
+    const ctxBar = document.getElementById('bar-chart').getContext('2d');
 
-/*
- * Handles submission of the Add Cost form.
- */
-function handleAddCost() {
-  const sumInput = document.getElementById("cost-sum");
-  const currencyInput = document.getElementById("cost-currency");
-  const categoryInput = document.getElementById("cost-category");
-  const descInput = document.getElementById("cost-desc");
+    if (barChartInstance) {
+      barChartInstance.destroy();
+    }
 
-  const sum = parseFloat(sumInput.value);
-
-  if (isNaN(sum) || sum <= 0) {
-    showToast("Please enter a valid positive amount.", "error");
-    return;
-  }
-  if (!descInput.value.trim()) {
-    showToast("Description cannot be empty.", "error");
-    return;
-  }
-
-  try {
-    costsDB.addCost({
-      sum: sum,
-      currency: currencyInput.value,
-      category: categoryInput.value,
-      description: descInput.value.trim(),
-    });
-
-    /* Reset form fields */
-    sumInput.value = "";
-    descInput.value = "";
-
-    showToast("Cost item added successfully! ✓", "success");
-  } catch (e) {
-    showToast("Error: " + e.message, "error");
-  }
-}
-
-/* ─── Monthly Report ─────────────────────────────────────────── */
-
-/* Holds a reference to the current pie chart instance */
-let pieChartInstance = null;
-
-/*
- * Generates and renders the monthly report for the selected year/month.
- */
-function handleMonthlyReport() {
-  const year = parseInt(document.getElementById("report-year").value, 10);
-  const month = parseInt(document.getElementById("report-month").value, 10);
-
-  const report = costsDB.getReport(year, month);
-
-  /* Render the costs table */
-  renderReportTable(report);
-
-  /* Render the pie chart */
-  renderPieChart(report);
-}
-
-/*
- * Renders the report results table.
- * @param {Object} report - Report object from getReport()
- */
-function renderReportTable(report) {
-  const container = document.getElementById("report-results");
-
-  if (report.costs.length === 0) {
-    container.innerHTML = `<p class="empty-msg">No costs found for ${monthName(report.month)} ${report.year}.</p>`;
-    return;
-  }
-
-  let rows = report.costs
-    .map(function (item) {
-      return `
-      <tr>
-        <td>${formatDate(item.date)}</td>
-        <td><span class="cat-badge">${item.category}</span></td>
-        <td>${item.description}</td>
-        <td class="amount">$${item.sum.toFixed(2)}</td>
-      </tr>`;
-    })
-    .join("");
-
-  container.innerHTML = `
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th>Date</th><th>Category</th><th>Description</th><th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3"><strong>Total</strong></td>
-          <td class="amount total-amount"><strong>$${report.total.sum.toFixed(2)}</strong></td>
-        </tr>
-      </tfoot>
-    </table>`;
-}
-
-/*
- * Renders a pie chart grouping costs by category.
- * @param {Object} report - Report object from getReport()
- */
-function renderPieChart(report) {
-  const canvas = document.getElementById("pie-chart");
-  const wrapper = document.getElementById("pie-wrapper");
-
-  if (report.costs.length === 0) {
-    wrapper.style.display = "none";
-    return;
-  }
-
-  wrapper.style.display = "block";
-
-  /* Aggregate totals per category */
-  const totals = {};
-  report.costs.forEach(function (item) {
-    totals[item.category] = (totals[item.category] || 0) + item.sum;
-  });
-
-  const labels = Object.keys(totals);
-  const data = Object.values(totals);
-  const colors = labels.map(function (_, i) {
-    return CHART_COLORS[i % CHART_COLORS.length];
-  });
-
-  /* Destroy previous chart instance to avoid duplicates */
-  if (pieChartInstance) {
-    pieChartInstance.destroy();
-  }
-
-  pieChartInstance = new Chart(canvas, {
-    type: "pie",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: data,
-          backgroundColor: colors,
-          borderColor: "#1a1a2e",
-          borderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          labels: { color: "#e0e0ff", font: { size: 13 } },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (ctx) {
-              return ` ${ctx.label}: $${ctx.parsed.toFixed(2)}`;
-            },
-          },
-        },
+    barChartInstance = new Chart(ctxBar, {
+      type: 'bar',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        datasets: [{
+          label: 'Monthly Total (USD)',
+          data: monthlySums,
+          backgroundColor: 'rgba(108, 99, 255, 0.65)',
+          borderColor: '#6C63FF',
+          borderWidth: 1,
+          borderRadius: 5
+        }]
       },
-    },
-  });
-}
-
-/* ─── Yearly Bar Chart ───────────────────────────────────────── */
-
-/* Holds a reference to the current bar chart instance */
-let barChartInstance = null;
-
-/*
- * Generates and renders the yearly bar chart.
- */
-function handleYearlyChart() {
-  const year = parseInt(document.getElementById("bar-year").value, 10);
-
-  /* Fetch totals for each of the 12 months */
-  const monthlyTotals = [];
-  for (let m = 1; m <= 12; m++) {
-    const report = costsDB.getReport(year, m);
-    monthlyTotals.push(report.total.sum);
-  }
-
-  renderBarChart(year, monthlyTotals);
-}
-
-/*
- * Renders a bar chart showing monthly totals for a given year.
- * @param {number} year
- * @param {Array}  monthlyTotals - 12-element array of sums
- */
-function renderBarChart(year, monthlyTotals) {
-  const canvas = document.getElementById("bar-chart");
-  const labels = [];
-  for (let m = 1; m <= 12; m++) {
-    labels.push(monthName(m));
-  }
-
-  /* Destroy previous chart instance */
-  if (barChartInstance) {
-    barChartInstance.destroy();
-  }
-
-  barChartInstance = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: `Total Costs ${year} (USD)`,
-          data: monthlyTotals,
-          backgroundColor: CHART_COLORS,
-          borderColor: "#1a1a2e",
-          borderWidth: 2,
-          borderRadius: 6,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#e8e8ff', font: { family: 'DM Sans' } } }
         },
-      ],
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: {
-          ticks: { color: "#e0e0ff" },
-          grid: { color: "rgba(255,255,255,0.05)" },
-        },
-        y: {
-          beginAtZero: true,
-          ticks: {
-            color: "#e0e0ff",
-            callback: function (v) {
-              return "$" + v;
-            },
-          },
-          grid: { color: "rgba(255,255,255,0.08)" },
-        },
-      },
-      plugins: {
-        legend: {
-          labels: { color: "#e0e0ff", font: { size: 13 } },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (ctx) {
-              return ` $${ctx.parsed.y.toFixed(2)}`;
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-/* ─── Navigation ─────────────────────────────────────────────── */
-
-/*
- * Binds click events to all nav buttons.
- */
-function initNav() {
-  document.querySelectorAll(".nav-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      showSection(btn.dataset.section);
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#8888bb' } },
+          y: { grid: { color: 'rgba(108, 99, 255, 0.1)' }, ticks: { color: '#8888bb' } }
+        }
+      }
     });
   });
-}
-
-/* ─── Boot ───────────────────────────────────────────────────── */
-
-/*
- * Initialises the application once the DOM is ready.
- */
-document.addEventListener("DOMContentLoaded", function () {
-  /* Initialise the database after the DOM (and all scripts) are ready */
-  costsDB = db.openCostsDB("costsdb", 1);
-
-  populateCategories();
-  populateYears();
-  populateMonths();
-  initNav();
-
-  /* Default section */
-  showSection("section-add");
-
-  /* Add Cost button */
-  document.getElementById("btn-add-cost").addEventListener("click", handleAddCost);
-
-  /* Monthly Report button */
-  document.getElementById("btn-report").addEventListener("click", handleMonthlyReport);
-
-  /* Yearly Bar Chart button */
-  document.getElementById("btn-bar").addEventListener("click", handleYearlyChart);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
