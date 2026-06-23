@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Toast Notification Element
   const toast = document.getElementById('toast');
 
-  /* ─── Initialize Form & Dropdowns ──────────────────────────── */
+  /* Initialize Form & Dropdowns */
 
   // Populate Categories Dropdown
   categories.forEach(function (category) {
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Set default current month in report select
   reportMonthSelect.value = new Date().getMonth() + 1;
 
-  /* ─── Toast Notification Utility ────────────────────────────── */
+  /* Toast Notification Utility */
 
   function showToast(message, type) {
     toast.textContent = message;
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 3500);
   }
 
-  /* ─── Navigation Logic (SPA) ────────────────────────────────── */
+  /* Navigation Logic (SPA) */
 
   navButtons.forEach(function (button) {
     button.addEventListener('click', function () {
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  /* ─── Form Submission Logic (Add Cost) ───────────────────────── */
+  /* Add Cost */
 
   btnAddCost.addEventListener('click', function () {
     const sumValue = parseFloat(costSumInput.value);
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  /* ─── Section 2: Monthly Report Generation & Chart ───────────── */
+  /* Section 2: Monthly Report Generation & Chart */
 
   btnReport.addEventListener('click', function () {
     const selectedMonth = parseInt(reportMonthSelect.value, 10);
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  /* ─── Section 3: Yearly Overview Chart ───────────────────────── */
+  /* Section 3: Yearly Overview Chart */
 
   btnBar.addEventListener('click', function () {
     const selectedYear = parseInt(barYearSelect.value, 10);
@@ -292,20 +292,3 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
