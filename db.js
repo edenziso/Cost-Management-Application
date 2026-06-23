@@ -246,5 +246,3 @@
   global.db = db;
 })(typeof window !== 'undefined' ? window : global);
 
-
-
