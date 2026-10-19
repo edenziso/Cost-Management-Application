@@ -19,10 +19,16 @@ Built as the final project of an Advanced Frontend (OOP) course at Bar-Ilan Univ
 - **Responsive design** that works on desktop and mobile
 
 ## Screenshots
-<img width="1852" height="841" alt="image" src="https://github.com/user-attachments/assets/6e671c05-6e6d-4e24-a2f5-18d5edf7c246" />
-<img width="812" height="787" alt="image" src="https://github.com/user-attachments/assets/098cfb0e-d270-4bd3-b081-33ec8ef299be" />
-<img width="857" height="761" alt="image" src="https://github.com/user-attachments/assets/4dbc2c84-a7ca-4316-acac-3fa9adbe1d49" />
 
+<p align="center">
+  <img width="800" alt="Add expense screen" src="https://github.com/user-attachments/assets/6e671c05-6e6d-4e24-a2f5-18d5edf7c246" />
+</p>
+<p align="center">
+  <img width="420" alt="Monthly report with category pie chart" src="https://github.com/user-attachments/assets/098cfb0e-d270-4bd3-b081-33ec8ef299be" />
+  <img width="420" alt="Yearly overview bar chart" src="https://github.com/user-attachments/assets/4dbc2c84-a7ca-4316-acac-3fa9adbe1d49" />
+</p>
+
+## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
